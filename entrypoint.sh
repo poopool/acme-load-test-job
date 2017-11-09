@@ -10,7 +10,8 @@ apt-get update
 apt-get install -y apache2-utils wget curl lsb-release zip
 
 
-sleep 30
+echo "Seeding acme database..."
+curl -H "Content-Type: application/x-www-form-urlencoded" -X GET http://node:3000/rest/api/loader/load?numCustomers=10000
 
 #Running tests...
 counter=1
