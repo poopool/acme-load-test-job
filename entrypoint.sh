@@ -2,7 +2,7 @@
 
 #Mapping build vars to env vars
 INPUT_FILE_NAME=${INPUT_FILE_NAME-uni.txt}
-URL=${URL-}
+URL=${URL-http://node:3000/rest/api/login}
 BB_API_KEY=${BB_API_KEY}
 
 #Installing useful tools
