@@ -9,9 +9,12 @@ BB_API_KEY=${BB_API_KEY}
 apt-get update
 apt-get install -y apache2-utils wget curl lsb-release zip
 
+sleep 5
 
 echo "Seeding acme database..."
-curl -H "Content-Type: application/x-www-form-urlencoded" -X GET http://node:3000/rest/api/loader/load?numCustomers=10000
+curl -H "Content-Type: application/x-www-form-urlencoded" -X GET http://node:3000/rest/api/loader/load?numCustomers=100
+
+sleep 10
 
 #Running tests...
 counter=1
@@ -21,7 +24,6 @@ for next in `cat $INPUT_FILE_NAME`
 do
     c=$(echo $next |awk -F "," {'print $1'})
     n=$(echo $next |awk -F "," {'print $2'})
-    echo "ab -k -c $c -n $n -T application/x-www-form-urlencoded -k -p post.file $URL &>test-$counter.txt"
     ab -k -c $c -n $n -T application/x-www-form-urlencoded -k -p post.file $URL &>test-$counter.txt
     counter=$((counter+1))
 done
