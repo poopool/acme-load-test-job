@@ -1,0 +1,75 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    category: web_framework
+    component: node
+  name: node
+spec:
+  ports:
+  - name: http-port
+    port: 3000
+    protocol: TCP
+    targetPort: http-port
+  selector:
+    app: node
+  sessionAffinity: None
+  type: LoadBalancer
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    category: web_framework
+    component: node
+  name: node-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      category: web_framework
+      component: node
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: node
+        category: web_framework
+        component: node
+    spec:
+      containers:
+      - args:
+        - npm
+        - start
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: PORT
+          value: "3000"
+        image: applariat/acme-air-node:develop
+        imagePullPolicy: Always
+        name: node
+        ports:
+        - containerPort: 3000
+          name: http-port
+          protocol: TCP
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
