@@ -31,6 +31,7 @@ sleep 10
 echo "checking acme-app running status..."
 
 MONGO_STATUS=$(kubectl get po | grep mongo |awk '{print $3}')
+MONGO_POD_NAME=$(kubectl get po | grep mongo |awk '{print $1}')
 
 echo "MongoDB status: $MONGO_STATUS"
 if [ $MONGO_STATUS != "Running" ]
@@ -43,6 +44,7 @@ then
 fi
 
 NODE_STATUS=$(kubectl get po | grep node |awk '{print $3}')
+NODE_POD_NAME=$(kubectl get po | grep node |awk '{print $1}')
 
 echo "Node.js status: $NODE_STATUS"
 if [ $NODE_STATUS != "Running" ]
@@ -53,6 +55,12 @@ then
     wait 5
   done
 fi
+
+echo "acme-app is running, going to seed acme database..."
+kubectl exec -it $NODE_POD_NAME -- bash -c "curl -H \"Content-Type: application/x-www-form-urlencoded\" -X GET http://node:3000/rest/api/loader/load?numCustomers=1000"
+check_status
+
+sleep 5
 
 
 

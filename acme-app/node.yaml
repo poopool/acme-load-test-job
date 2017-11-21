@@ -71,5 +71,12 @@ spec:
         - containerPort: 3000
           name: http-port
           protocol: TCP
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128M
+          requests:
+            cpu: 100m
+            memory: 128M
       dnsPolicy: ClusterFirst
       restartPolicy: Always
