@@ -2,38 +2,64 @@
 
 check_status()
 {
-if [ $? -ne 0 ]
-then
-  echo "Something went wrong, please check logs..."
-  exit 1
-fi
+    if [ $? -ne 0 ]
+    then
+      echo "Something went wrong, please check logs..."
+      exit 1
+    fi
+}
+
+generate_deployment_file()
+{
+    mkdir .tmp
+    IFS=$'\n'
+    for next in `cat resource.txt`
+    do
+        cpu=$(echo $next |awk -F "," {'print $1'})
+        mem=$(echo $next |awk -F "," {'print $2'})
+#        echo "Running ab -k -c $c -n $n -T application/x-www-form-urlencoded -k -p post.file $URL &>test-$counter.txt"
+#        ab -k -c $c -n $n -T application/x-www-form-urlencoded -k -p post.file $URL &>test-$counter.txt
+        jq '.spec.template.spec.containers[].resources.limits.cpu = $cpu' acme-app/node-deploy.json > .tmp/
+
+
+
+        counter=$((counter+1))
+    done
+
 }
 
 echo "locating kubectl binaries..."
+sleep 1
 [ -x /usr/local/bin/kubectl ] || { echo "[!] ERROR: Missing kubectl on this system. Aborting."; exit 1; }
 
 CLUSTER_NAME=$(kubectl config view |grep current-context |awk '{print $2}')
 echo "kubectl is pointing to: $CLUSTER_NAME"
+sleep 1
 
 echo "fetching the list of cluster nodes:"
+sleep 1
 kubectl get nodes
 check_status
 
 echo "locating acme-app dir"
+sleep 1
 [ -d /usr/local/bin/kubectl ] || { echo "[!] ERROR: Missing acme-app dir. Aborting."; exit 1; }
 
 echo "deploying acme-app..."
+sleep 1
 kubectl apply -f acme-app/
 check_status
 
 sleep 10
 
 echo "checking acme-app running status..."
+sleep 1
 
 MONGO_STATUS=$(kubectl get po | grep mongo |awk '{print $3}')
 MONGO_POD_NAME=$(kubectl get po | grep mongo |awk '{print $1}')
 
 echo "MongoDB status: $MONGO_STATUS"
+sleep 1
 if [ $MONGO_STATUS != "Running" ]
 then
   while [ $MONGO_STATUS != "Running" ]
@@ -47,6 +73,7 @@ NODE_STATUS=$(kubectl get po | grep node |awk '{print $3}')
 NODE_POD_NAME=$(kubectl get po | grep node |awk '{print $1}')
 
 echo "Node.js status: $NODE_STATUS"
+sleep 1
 if [ $NODE_STATUS != "Running" ]
 then
   while [ $NODE_STATUS != "Running" ]
@@ -57,10 +84,18 @@ then
 fi
 
 echo "acme-app is running, going to seed acme database..."
+sleep 1
 kubectl exec -it $NODE_POD_NAME -- bash -c "curl -H \"Content-Type: application/x-www-form-urlencoded\" -X GET http://node:3000/rest/api/loader/load?numCustomers=1000"
 check_status
 
-sleep 5
+echo "locating uni.txt file..."
+sleep 1
+[ -f uni.txt ] || { echo "[!] ERROR: Missing uni.txt. Aborting."; exit 1; }
 
+echo "locating resource.txt file..."
+sleep 1
+[ -f resource.txt ] || { echo "[!] ERROR: Missing uni.txt. Aborting."; exit 1; }
+
+generate_deployment_file
 
 
