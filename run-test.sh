@@ -15,15 +15,34 @@ generate_deployment_file()
     IFS=$'\n'
     for next in `cat resource.txt`
     do
-        cpu=$(echo $next |awk -F "," {'print $1'})
-        mem=$(echo $next |awk -F "," {'print $2'})
-#        echo "Running ab -k -c $c -n $n -T application/x-www-form-urlencoded -k -p post.file $URL &>test-$counter.txt"
-#        ab -k -c $c -n $n -T application/x-www-form-urlencoded -k -p post.file $URL &>test-$counter.txt
-        jq '.spec.template.spec.containers[].resources.limits.cpu = $cpu' acme-app/node-deploy.json > .tmp/
+        req-cpu=$(echo $next |awk -F "," {'print $1'})
+        req-cpu+=m
+        req-mem=$(echo $next |awk -F "," {'print $2'})
+        req-mem+=Mi
+        limit-cpu=$(echo $next |awk -F "," {'print $3'})
+        limit-cpu+=m
+        limit-mem=$(echo $next |awk -F "," {'print $4'})
+        limit-mem+=Mi
+        pod-count=$(echo $next |awk -F "," {'print $5'})
 
+        jq '.spec.template.spec.containers[].resources.requests.cpu = '$req-cpu'' acme-app/node-deploy.json |sponge acme-app/node-deploy.json
+        jq '.spec.template.spec.containers[].resources.requests.memory = '$req-mem'' acme-app/node-deploy.json |sponge acme-app/node-deploy.json
+        jq '.spec.template.spec.containers[].resources.limits.cpu = '$limit-cpu'' acme-app/node-deploy.json |sponge acme-app/node-deploy.json
+        jq '.spec.template.spec.containers[].resources.limits.memory = '$limit-mem'' acme-app/node-deploy.json |sponge acme-app/node-deploy.json
+        jq '.spec.replicas = '$pod-count'' acme-app/node-deploy.json |sponge acme-app/node-deploy.json
 
+        kubectl apply -f acme-app/node-deploy.json
 
-        counter=$((counter+1))
+        IFS=$'\n'
+        for next in `cat uni.txt`
+        do
+            c=$(echo $next |awk -F "," {'print $1'})
+            n=$(echo $next |awk -F "," {'print $2'})
+            echo "Running ab -k -c $c -n $n -T application/x-www-form-urlencoded -k -p post.file $URL &>test-$counter.txt"
+            ab -k -c $c -n $n -T application/x-www-form-urlencoded -k -p post.file $URL &>test-$counter.txt
+            counter=$((counter+1))
+        done
+
     done
 
 }
