@@ -88,9 +88,10 @@ run_test()
 
         EXEC_TEST_POD=$(kubectl get po |grep exec-test|awk '{print $1}')
         echo "installing apache benchmark tool..."
-        kubectl exec -it $EXEC_TEST_POD -- bash -c "apt-get -qq update && apt-get -qq install -y apache2-utils wget curl zip"
+        kubectl exec -it $EXEC_TEST_POD -- bash -c "apt-get -qq update && apt-get -qq install -y procps apache2-utils wget curl zip"
         echo "copying post file to remote container"
         kubectl cp post.file ${EXEC_TEST_POD}:/post.file
+        check_status
 
         counter=1
         IFS=$'\n'
@@ -98,8 +99,11 @@ run_test()
         do
             c=$(echo $next |awk -F "," {'print $1'})
             n=$(echo $next |awk -F "," {'print $2'})
-            echo "Running ab -k -c $c -n $n -T application/x-www-form-urlencoded -k -p post.file $URL &>test-$counter.txt"
+            echo "Running ab -k -c $c -n $n -T application/x-www-form-urlencoded -k -p post.file http://node:3000/rest/api/login &>test-$counter.txt"
             kubectl exec -it $EXEC_TEST_POD -- bash -c "ab -k -c $c -n $n -T application/x-www-form-urlencoded -p post.file http://node:3000/rest/api/login &>test-$counter.txt"
+            sleep 5
+            kubectl exec -it $EXEC_TEST_POD -- bash -c "killall -9 ab"
+            sleep 5
             counter=$((counter+1))
         done
 
@@ -169,7 +173,7 @@ while [ $CONN_STAT -ne 0 ]
 do
       echo "Something went wrong, acme-air app is not responding. Going to restart the pod..."
       kubectl delete pod $NODE_POD_NAME
-      sleep 10
+      sleep 20
       node_status
       get_node_ext-ip
       CONN_STAT=$(nc -z $NODE_EXT_IP 3000; echo $?)
