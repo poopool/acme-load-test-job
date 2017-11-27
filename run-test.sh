@@ -75,9 +75,9 @@ run_test()
         | jq '.spec.template.spec.containers[].resources.requests.memory = "'$req_mem'"' acme-app/node-deploy.json \
         | jq '.spec.template.spec.containers[].resources.limits.cpu = "'$limit_cpu'"' acme-app/node-deploy.json \
         | jq '.spec.template.spec.containers[].resources.limits.memory = "'$limit_mem'"' acme-app/node-deploy.json \
-        | jq '.spec.replicas = '$pod_count'' > node-deploy-$req_cpu-$req_mem-$limit_cpu-$limit_mem.yaml
+        | jq '.spec.replicas = '$pod_count'' > node-deploy-$req_cpu-$req_mem-$limit_cpu-$limit_mem-$pod_count.yaml
 
-        kubectl apply -f node-deploy-$req_cpu-$req_mem-$limit_cpu-$limit_mem.yaml
+        kubectl apply -f node-deploy-$req_cpu-$req_mem-$limit_cpu-$limit_mem-$pod_count.yaml
         check_status
         sleep 10
 
@@ -107,7 +107,7 @@ run_test()
             counter=$((counter+1))
         done
 
-        OUT_PUT_FILE=results-$req_cpu-$req_mem-$limit_cpu-$limit_mem
+        OUT_PUT_FILE=results-$req_cpu-$req_mem-$limit_cpu-$limit_mem-$pod_count
 
         kubectl exec -it $EXEC_TEST_POD -- bash -c "mkdir -p results"
         kubectl exec -it $EXEC_TEST_POD -- bash -c "mv test-* results"
@@ -117,6 +117,7 @@ run_test()
         kubectl exec -it $EXEC_TEST_POD -- bash -c "curl --user applariat:$BB_API_KEY --form files=@"${OUT_PUT_FILE}.zip" "https://api.bitbucket.org/2.0/repositories/applariat/apl-policy/downloads""
         echo "killing ephemeral container"
         kubectl delete deploy exec-test
+        sleep 15
 
     done
 }
@@ -194,4 +195,5 @@ sleep 1
 
 run_test
 
+echo "All test ran successfully..."
 
