@@ -190,7 +190,7 @@ echo "checking connection to acme-air:3000"
 sleep 5
 CONN_STAT=$(nc -z $NODE_EXT_IP 3000; echo $?)
 delay_counter=12
-while [ $CONN_STAT -ne 0 ] || [ $delay_counter -ne 0 ]
+while [ $CONN_STAT -ne 0 ] && [ $delay_counter -ne 0 ]
 do
     sleep 10
     delay_counter=$((delay_counter-1))
