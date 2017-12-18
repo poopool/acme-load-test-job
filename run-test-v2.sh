@@ -21,22 +21,25 @@ run_test()
 
     EXEC_TEST_POD=$(kubectl -n $namespace get po |grep exec-test|awk '{print $1}')
     echo "installing apache benchmark tool..."
-    kubectl -n $namespace exec -it $EXEC_TEST_POD -- bash -c "apt-get -qq update && apt-get -qq install -y procps apache2-utils wget curl zip"
+    kubectl -n $namespace exec -it $EXEC_TEST_POD -- bash -c "apt-get -qq update && apt-get -qq install -y procps apache2-utils wget curl zip > /dev/null"
     echo "creating post file in remote container"
     kubectl -n $namespace exec -it $EXEC_TEST_POD -- bash -c "echo $post_payload > /post.file"
 
     c=$cuncurrent_connections
     n=$total_connections
-    echo "Running ab -k -c $c -n $n -T application/x-www-form-urlencoded -k -p post.file $end_point &>test-$counter.txt"
+    echo "Running ab -k -c $c -n $n -T application/x-www-form-urlencoded -k -p post.file $end_point > test-result.txt"
     kubectl -n $namespace exec -it $EXEC_TEST_POD -- bash -c "ab -k -c $c -n $n -T application/x-www-form-urlencoded -p post.file $end_point &>test-result.txt"
     sleep 1
     echo "Test completed, analyzing the the result..."
 
-    result=$(kubectl -n $namespace exec -it $EXEC_TEST_POD -- bash -c "cat test-result.txt |grep 95% > /dev/null ; echo $?")
-    if [ $result -ne 0 ]
+    kubectl -n $namespace exec -it $EXEC_TEST_POD -- bash -c "grep 95% test-result.txt > /dev/null"
+    if [ $? -ne 0 ]
     then
       echo "Test failed, aborting..."
-      resturn 1
+      echo "killing ephemeral container"
+      kubectl -n $namespace delete deploy exec-test
+      sleep 5
+      exit 1
     else
       echo "Test was successful, saving average response time for 95% of requests:"
       final_result=$(kubectl -n $namespace exec -it $EXEC_TEST_POD -- bash -c "cat test-result.txt |grep 95%")
